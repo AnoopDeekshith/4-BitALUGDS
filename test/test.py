@@ -5,7 +5,6 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
-# Opcodes
 OP_ADD = 0b000
 OP_SUB = 0b001
 OP_AND = 0b010
@@ -16,22 +15,21 @@ OP_LSL = 0b110
 OP_LSR = 0b111
 
 async def apply_op(dut, A, B, op):
-    """Apply inputs and wait one clock cycle."""
     dut.ui_in.value  = (B << 4) | (A & 0xF)
     dut.uio_in.value = op
     await ClockCycles(dut.clk, 1)
 
 def get_result(dut):
-    return dut.uo_out.value & 0xF
+    return int(dut.uo_out.value) & 0xF
 
 def get_zero(dut):
-    return (dut.uo_out.value >> 4) & 1
+    return (int(dut.uo_out.value) >> 4) & 1
 
 def get_carry(dut):
-    return (dut.uo_out.value >> 5) & 1
+    return (int(dut.uo_out.value) >> 5) & 1
 
 def get_negative(dut):
-    return (dut.uo_out.value >> 6) & 1
+    return (int(dut.uo_out.value) >> 6) & 1
 
 @cocotb.test()
 async def test_project(dut):
@@ -65,14 +63,14 @@ async def test_project(dut):
             fail_count += 1
 
     # --- ADD ---
-    await check(3,  5,  OP_ADD, 8,  0, 1)   # 3+5=8
-    await check(7,  8,  OP_ADD, 15, 0, 2)   # 7+8=15
-    await check(15, 1,  OP_ADD, 0,  1, 3)   # overflow -> carry
-    await check(0,  0,  OP_ADD, 0,  0, 4)   # zero flag
+    await check(3,  5,  OP_ADD, 8,  0, 1)
+    await check(7,  8,  OP_ADD, 15, 0, 2)
+    await check(15, 1,  OP_ADD, 0,  1, 3)   # carry
+    await check(0,  0,  OP_ADD, 0,  0, 4)   # zero
 
     # --- SUB ---
-    await check(8,  3,  OP_SUB, 5,  0, 5)   # 8-3=5
-    await check(5,  5,  OP_SUB, 0,  0, 6)   # zero flag
+    await check(8,  3,  OP_SUB, 5,  0, 5)
+    await check(5,  5,  OP_SUB, 0,  0, 6)   # zero
     await check(0,  1,  OP_SUB, 15, 1, 7)   # borrow
 
     # --- AND ---
@@ -86,7 +84,7 @@ async def test_project(dut):
     await check(0b1010, 0b0101, OP_OR, 0b1111, 0, 13)
 
     # --- XOR ---
-    await check(0b1010, 0b1010, OP_XOR, 0b0000, 0, 14)  # A XOR A = 0
+    await check(0b1010, 0b1010, OP_XOR, 0b0000, 0, 14)
     await check(0b1100, 0b0011, OP_XOR, 0b1111, 0, 15)
     await check(0b1111, 0b0000, OP_XOR, 0b1111, 0, 16)
 
@@ -98,28 +96,26 @@ async def test_project(dut):
     # --- Left Shift ---
     await check(0b0001, 0, OP_LSL, 0b0010, 0, 20)
     await check(0b0011, 0, OP_LSL, 0b0110, 0, 21)
-    await check(0b1000, 0, OP_LSL, 0b0000, 0, 22)  # MSB shifted out
+    await check(0b1000, 0, OP_LSL, 0b0000, 0, 22)
 
     # --- Right Shift ---
     await check(0b1000, 0, OP_LSR, 0b0100, 0, 23)
     await check(0b0011, 0, OP_LSR, 0b0001, 0, 24)
-    await check(0b0001, 0, OP_LSR, 0b0000, 0, 25)  # LSB shifted out
+    await check(0b0001, 0, OP_LSR, 0b0000, 0, 25)
 
     # --- Zero Flag ---
     await apply_op(dut, 0, 0, OP_ADD)
     if get_zero(dut) == 1:
-        dut._log.info("PASS [Test 26] Zero flag set correctly when result=0")
+        dut._log.info("PASS [Test 26] Zero flag set correctly")
         pass_count += 1
     else:
         dut._log.error("FAIL [Test 26] Zero flag not set when result=0")
         fail_count += 1
 
     # --- Negative Flag ---
-    await apply_op(dut, 0b1000, 0, OP_LSR)  # result = 0b0100, not negative
-    await apply_op(dut, 0b1111, 0, OP_NOT)  # result = 0b0000
-    await apply_op(dut, 8, 1, OP_ADD)       # result = 9 = 0b1001, MSB=1 -> negative
+    await apply_op(dut, 8, 1, OP_ADD)  # 8+1=9=0b1001, MSB=1
     if get_negative(dut) == 1:
-        dut._log.info("PASS [Test 27] Negative flag set correctly when MSB=1")
+        dut._log.info("PASS [Test 27] Negative flag set correctly")
         pass_count += 1
     else:
         dut._log.error("FAIL [Test 27] Negative flag not set when MSB=1")
