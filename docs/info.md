@@ -9,7 +9,7 @@ You can also include images in this folder and reference them in the markdown. E
 
 <!--- docs/info.md -->
 
-## How it works
+## How it works -
 
 This project implements a 4-bit Arithmetic Logic Unit (ALU) that supports 8 operations
 controlled by a 3-bit opcode. The ALU takes two 4-bit operands (A and B) via `ui_in`
