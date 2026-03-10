@@ -128,6 +128,25 @@ async def test_project(dut):
         dut._log.error("FAIL [Test 27] Negative flag not set when MSB=1")
         fail_count += 1
 
+    # --- Compound Arithmetic: A * 3 = (A << 1) + A ---
+    # Equation: 3 * 3 = (3 << 1) + 3 = 6 + 3 = 9
+    # Step 1: Left-shift A=3 by 1 bit  =>  3 * 2 = 6
+    await apply_op(dut, 3, 0, OP_LSL)
+    shifted = get_result(dut)  # expect 6
+
+    # Step 2: Add the shifted result (6) back to original A (3)  =>  6 + 3 = 9
+    await apply_op(dut, shifted, 3, OP_ADD)
+    product = get_result(dut)  # expect 9
+
+    if shifted == 6 and product == 9:
+        dut._log.info(f"PASS [Test 28] Compound A*3: (3<<1)+3 => {shifted}+3={product} (expected 9)")
+        pass_count += 1
+    else:
+        dut._log.error(
+            f"FAIL [Test 28] Compound A*3: (3<<1)+3 => shift={shifted} (exp 6), sum={product} (exp 9)"
+        )
+        fail_count += 1
+
     # --- Summary ---
     dut._log.info("=============================")
     dut._log.info(f"RESULTS: {pass_count} PASSED, {fail_count} FAILED")
